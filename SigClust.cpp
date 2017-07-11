@@ -102,19 +102,6 @@ vector<uint64_t> convertFastaToSignatures(const vector<pair<string, string>> &fa
   return output;
 }
 
-template<class RNG>
-vector<size_t> initialSeedClusters(RNG &&rng, const vector<uint64_t> &sigs)
-{
-  size_t signatureCount = sigs.size() / signatureSize;
-  vector<size_t> clusters(signatureCount);
-  uniform_int_distribution<size_t> dist(0, clusterCount - 1);
-  for (size_t i = 0; i < signatureCount; i++) {
-    size_t cluster = dist(rng);
-    clusters[i] = cluster;
-  }
-  return clusters;
-}
-
 vector<vector<size_t>> createClusterLists(const vector<size_t> &clusters)
 {
   vector<vector<size_t>> clusterLists(clusterCount);
@@ -122,15 +109,6 @@ vector<vector<size_t>> createClusterLists(const vector<size_t> &clusters)
     clusterLists[clusters[i]].push_back(i);
   }
   return clusterLists;
-}
-
-bool anyEmptyClusters(const vector<vector<size_t>> &clusterLists)
-{
-  for (size_t i = 0; i < clusterLists.size(); i++) {
-    if (clusterLists.empty())
-      return true;
-  }
-  return false;
 }
 
 vector<uint64_t> createClusterSigs(const vector<vector<size_t>> &clusterLists, const vector<uint64_t> &sigs)
@@ -276,9 +254,9 @@ int main(int argc, char **argv)
     fprintf(stderr, "Options:\n");
     fprintf(stderr, "  -sw [signature width]\n");
     fprintf(stderr, "  -k [kmer length]\n");
-    fprintf(stderr, "  -d [signature density\n");
+    fprintf(stderr, "  -d [signature density]\n");
     fprintf(stderr, "  -c [cluster count]\n");
-    fprintf(stderr, "  -i [k-means iterations\n");
+    fprintf(stderr, "  -i [k-means iterations]\n");
     fprintf(stderr, "  --fasta-output\n");
     return 1;
   }
@@ -301,13 +279,29 @@ int main(int argc, char **argv)
     else if (arg == "--fasta-output") fastaOutput = true;
     else if (fastaFile.empty()) fastaFile = arg;
     else {
-      fprintf(stderr, "Invalid argument or extra argument: %s\n", arg.c_str());
+      fprintf(stderr, "Invalid or extra argument: %s\n", arg.c_str());
       exit(1);
     }
   }
     
-  if (signatureWidth % 64 != 0) {
+  if (signatureWidth <= 0 || signatureWidth % 64 != 0) {
     fprintf(stderr, "Error: signature width is not a multiple of 64\n");
+    return 1;
+  }
+  if (kmerLength <= 0) {
+    fprintf(stderr, "Error: kmer length must be a positive nonzero integer\n");
+    return 1;
+  }
+  if (density < 0.0f || density > 1.0f) {
+    fprintf(stderr, "Error: density must be a positive value between 0 and 1\n");
+    return 1;
+  }
+  if (clusterCount <= 0) {
+    fprintf(stderr, "Error: cluster count must be a positive nonzero integer\n");
+    return 1;
+  }
+  if (kMeansIterations <= 0) {
+    fprintf(stderr, "Error: iterations must be a positive nonzero integer\n");
     return 1;
   }
   
