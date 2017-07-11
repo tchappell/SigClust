@@ -60,15 +60,15 @@ By default SigClust will produce a two-column CSV consisting of the sequence ID 
 
 Given the fasta file `test.fasta`, containing the following data:
 ```
->0
+>a
 AAAAAAAAAACAAAAAACAAAAACAACAACAA
->1
+>b
 ACAAAAAACAAAAAAACAAAAAAAACAAACAAAAA
->2
+>c
 GGGGTGGGGGAGGGGGATGGGGGGGGTGGGGGGG
->3
+>d
 GGAGGGGGGGCGGGGGGGTGGGGGGAGGGGCGGGGTGG
->4
+>e
 AGAGAAAGAGCGAGGGAGAGGAGGAAGGAGCAGGATGG
 ```
 
@@ -84,7 +84,7 @@ Running SigClust to split these five sequences into two clusters with the follow
 3,0
 4,0
 ```
-Here, the first two sequences have been placed into one cluster (#1) and the latter three sequences into another cluster (#0). The numbering of the individual clusters is unimportant; all that is important is the grouping.
+The format of the default output is a two-column CSV, the first column containing the ID of the sequence (starting from 0 and based on the order the sequences were in in the original file) and the second column containing the ID of the cluster that sequence was placed int (again, starting from 0). Here, the first two sequences have been placed into one cluster (#1) and the latter three sequences into another cluster (#0). The numbering of the individual clusters is unimportant; all that is important is the grouping.
 
 To instead create three clusters, the following command is used instead:
 ```
