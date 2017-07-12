@@ -1,11 +1,13 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstdint>
+#include <cstring>
 #include <vector>
 #include <utility>
 #include <algorithm>
 #include <string>
 #include <random>
+#include <unordered_set>
 
 using namespace std;
 
@@ -172,29 +174,35 @@ vector<uint64_t> createRandomSigs(RNG &&rng, const vector<uint64_t> &sigs)
   vector<uint64_t> clusterSigs(signatureSize * clusterCount);
   size_t signatureCount = sigs.size() / signatureSize;
   uniform_int_distribution<size_t> dist(0, signatureCount - 1);
-  for (size_t i = 0; i < clusterCount; i++) {
-    bool isUnique = false;
+  bool finished = false;
+  
+  unordered_set<string> uniqueSigs;
+  for (size_t i = 0; i < signatureCount; i++) {
     size_t sig = dist(rng);
-    size_t initialSig = sig;
-    while (!isUnique) {
-      copy(&sigs[sig * signatureSize], &sigs[sig * signatureSize + signatureSize], &clusterSigs[i * signatureSize]);
-      isUnique = true;
-      for (size_t j = 0; j < i; j++) {
-        if (equal(&clusterSigs[i * signatureSize], &clusterSigs[i * signatureSize + signatureSize], &clusterSigs[j * signatureSize])) {
-          
-          isUnique = false;
-          break;
-        }
-      }
-      if (!isUnique) {
-        sig = (sig + 1) % signatureCount;
-        if (sig == initialSig) {
-          fprintf(stderr, "Error: there appear to be fewer unique signatures than clusters.\n");
-          fprintf(stderr, "Reduce the cluster count\n");
-          exit(1);
-        }
-      }
+    string sigData(signatureSize * sizeof(uint64_t), ' ');
+    memcpy(&sigData[0], &sigs[sig * signatureSize], signatureSize * sizeof(uint64_t));
+    uniqueSigs.insert(sigData);
+    if (uniqueSigs.size() >= clusterCount) {
+      finished = true;
+      break;
     }
+  }
+  
+  if (!finished) {
+    fprintf(stderr, "Error: there appear to be fewer unique signatures than clusters.\n");
+    fprintf(stderr, "Reduce the cluster count\n");
+    exit(1);
+  }
+  
+  size_t i = 0;
+  for (const auto &sig : uniqueSigs) {
+    memcpy(&clusterSigs[i * signatureSize], sig.data(), signatureSize * sizeof(uint64_t));
+    i++;
+  }
+  
+  if (i != uniqueSigs.size()) {
+    fprintf(stderr, "Mismatch: %zu != %zu\n", i, uniqueSigs.size());
+    exit(1);
   }
   
   return clusterSigs;
@@ -208,9 +216,7 @@ vector<size_t> clusterSignatures(const vector<uint64_t> &sigs)
   vector<size_t> clusters(sigs.size() / signatureSize);
   vector<vector<size_t>> clusterLists;
   vector<uint64_t> meanSigs;
-  
   meanSigs = createRandomSigs(rng, sigs);
-  
   for (int iteration = 0; iteration < kMeansIterations; iteration++) {
     fprintf(stderr, "Iteration %d\n", iteration);
     reclusterSignatures(clusters, meanSigs, sigs);
