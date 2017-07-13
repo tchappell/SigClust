@@ -29,7 +29,7 @@ vector<pair<string, string>> loadFasta(const char *path)
     exit(1);
   }
   for (;;) {
-    char seqNameBuf[256];
+    char seqNameBuf[8192];
     if (fscanf(fp, " >%[^\n]\n", seqNameBuf) < 1) break;
     string sequenceBuf;
 
